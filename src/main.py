@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware as CORSMiddlewareClass
 from src.database import engine, Base
-from src.api.routes import companies, job_openings
+from src.api.routes import companies, job_openings, candidates, applications
 from datetime import datetime, UTC
 
 # Create database tables
@@ -27,6 +27,8 @@ app.add_middleware(
 # Include routers
 app.include_router(companies.router, prefix="/v1", tags=["Companies"])
 app.include_router(job_openings.router, prefix="/v1", tags=["Job Openings"])
+app.include_router(candidates.router, prefix="/v1", tags=["Candidates"])
+app.include_router(applications.router, prefix="/v1", tags=["Applications"])
 
 @app.get("/")
 async def root():

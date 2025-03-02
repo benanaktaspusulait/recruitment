@@ -1,1 +1,1 @@
-from . import companies, job_openings 
+from . import companies, job_openings, candidates, applications 
