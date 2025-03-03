@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware as CORSMiddlewareClass
-from src.database import engine, Base, SessionLocal
+from src.database import engine, Base, SessionLocal, init_db
 from src.database.seed import seed_database
-from src.api.routes import companies, job_openings, candidates, applications, interviews, email_templates
+from src.api.routes import companies, job_openings, candidates, applications, interviews, email_templates, auth
 from datetime import datetime, UTC
 from src.core.logging import setup_logging
 from src.core.config import get_settings
@@ -12,6 +12,19 @@ from sqlalchemy.exc import SQLAlchemyError
 import typer
 
 cli = typer.Typer()
+
+def initialize_database(seed: bool = False):
+    """Initialize database and optionally seed it with data"""
+    init_db()  # This will recreate all tables
+    
+    if seed:
+        logger.info("Seeding database...")
+        db = SessionLocal()
+        try:
+            seed_database(db)
+            logger.info("Database seeded successfully")
+        finally:
+            db.close()
 
 @cli.command()
 def run(
@@ -23,14 +36,7 @@ def run(
     )
 ):
     """Run the FastAPI application"""
-    if seed:
-        logger.info("Seeding database...")
-        db = SessionLocal()
-        try:
-            seed_database(db)
-            logger.info("Database seeded successfully")
-        finally:
-            db.close()
+    initialize_database(seed)
 
     import uvicorn
     uvicorn.run("src.main:app", host="127.0.0.1", port=8000, reload=True)
@@ -40,8 +46,8 @@ logger = setup_logging()
 settings = get_settings()
 
 logger.info("Starting application...")
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Initialize database
+initialize_database()
 
 # Setup Azure monitoring in production
 if settings.ENVIRONMENT == "production":
@@ -51,6 +57,36 @@ app = FastAPI(
     title="Recruitment System API",
     description="REST API for managing job openings, candidates, and applications",
     version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "Authentication",
+            "description": "Operations for user authentication and authorization"
+        },
+        {
+            "name": "Companies",
+            "description": "Manage company profiles and information"
+        },
+        {
+            "name": "Job Openings",
+            "description": "Manage job postings and positions"
+        },
+        {
+            "name": "Candidates",
+            "description": "Manage candidate profiles and information"
+        },
+        {
+            "name": "Applications",
+            "description": "Handle job applications and their statuses"
+        },
+        {
+            "name": "Interviews",
+            "description": "Manage interview processes and scheduling"
+        },
+        {
+            "name": "Email Templates",
+            "description": "Manage email templates for various notifications"
+        }
+    ],
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -70,6 +106,7 @@ if settings.ENVIRONMENT != "production":
     app.add_middleware(DBProfilerMiddleware)
 
 # Include routers
+app.include_router(auth.router, prefix="/v1", tags=["Authentication"])
 app.include_router(companies.router, prefix="/v1", tags=["Companies"])
 app.include_router(job_openings.router, prefix="/v1", tags=["Job Openings"])
 app.include_router(candidates.router, prefix="/v1", tags=["Candidates"])

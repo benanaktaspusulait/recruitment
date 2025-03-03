@@ -1,93 +1,64 @@
 {
   "info": {
+    "_postman_id": "your-postman-id",
     "name": "Recruitment API",
-    "description": "Collection for Recruitment System API endpoints",
-    "version": "1.0.0",
+    "description": "API collection for the Recruitment System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Auth",
+      "name": "Authentication",
       "item": [
         {
           "name": "Login",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/v1/auth/token",
               "host": ["{{base_url}}"],
               "path": ["v1", "auth", "token"]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"username\": \"user@example.com\",\n    \"password\": \"password123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "admin@company.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "admin123",
+                  "type": "text"
                 }
-              }
+              ]
             }
           },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has access token\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.access_token).to.be.a('string');",
-                  "    pm.environment.set(\"token\", jsonData.access_token);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
+          "response": []
         },
         {
-          "name": "Register Candidate",
+          "name": "Get Current User",
           "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/v1/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "auth", "register"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"email\": \"candidate@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"candidate\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"+1234567890\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "auth", "me"]
             }
           },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test(\"Response has user data\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.email).to.eql(JSON.parse(request.data).email);",
-                  "    pm.expect(jsonData.role).to.eql('candidate');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
+          "response": []
         }
       ]
     },
@@ -101,12 +72,11 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
+                "value": "Bearer {{access_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/companies?skip=0&limit=10",
+              "raw": "{{base_url}}/v1/companies",
               "host": ["{{base_url}}"],
               "path": ["v1", "companies"],
               "query": [
@@ -121,24 +91,7 @@
               ]
             }
           },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response is an array\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('array');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
+          "response": []
         },
         {
           "name": "Get Company",
@@ -650,24 +603,34 @@
       ]
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
   "event": [
     {
       "listen": "prerequest",
       "script": {
         "type": "text/javascript",
-        "exec": [
-          "// Global pre-request script",
-          "if (!pm.environment.get('base_url')) {",
-          "    pm.environment.set('base_url', 'http://localhost:8000');",
-          "}"
-        ]
+        "exec": []
       }
     },
     {
       "listen": "test",
       "script": {
         "type": "text/javascript",
-        "exec": [""]
+        "exec": [
+          "if (pm.response.code === 200 && pm.request.url.toString().includes('/auth/token')) {",
+          "    var jsonData = pm.response.json();",
+          "    pm.environment.set('access_token', jsonData.access_token);",
+          "}"
+        ]
       }
     }
   ],

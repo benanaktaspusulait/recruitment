@@ -128,11 +128,10 @@ class User(UserBase):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str
 
 class TokenData(BaseModel):
-    email: str
-    role: UserRole
+    email: Optional[str] = None
 
 class InterviewTemplateStepBase(BaseModel):
     name: str

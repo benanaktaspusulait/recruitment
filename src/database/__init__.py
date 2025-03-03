@@ -7,47 +7,30 @@ import ssl
 
 settings = get_settings()
 
-# Configure engine based on environment
-if settings.ENVIRONMENT == "development":
-    engine = create_engine(
-        settings.DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    # Production Azure PostgreSQL configuration
-    connect_args = {}
-    
-    if settings.db.SSL_MODE == "require":
-        connect_args["ssl"] = {
-            "ssl_cert": settings.db.SSL_CA,
-            "ssl_mode": settings.db.SSL_MODE
-        }
+# SQLite database URL
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
-    engine = create_engine(
-        settings.DATABASE_URL,
-        poolclass=QueuePool,
-        pool_size=settings.db.POOL_SIZE,
-        max_overflow=settings.db.MAX_OVERFLOW,
-        pool_timeout=settings.db.POOL_TIMEOUT,
-        pool_recycle=settings.db.POOL_RECYCLE,
-        echo=settings.db.ECHO,
-        connect_args=connect_args
-    )
+# Configure engine based on database type
+connect_args = {}
+if SQLALCHEMY_DATABASE_URL.startswith('sqlite'):
+    connect_args["check_same_thread"] = False
 
-    # Add ping/reconnect functionality
-    @event.listens_for(engine, "engine_connect")
-    def ping_connection(connection, branch):
-        if branch:
-            return
+# Create SQLAlchemy engine
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args=connect_args
+)
 
-        try:
-            connection.scalar("SELECT 1::integer")
-        except Exception:
-            connection.connection.close()
-            raise
-
+# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create Base class
 Base = declarative_base()
+
+def init_db():
+    """Initialize the database by creating all tables"""
+    Base.metadata.drop_all(bind=engine)  # Drop all tables
+    Base.metadata.create_all(bind=engine)  # Create all tables
 
 # Dependency
 def get_db():
@@ -55,4 +38,18 @@ def get_db():
     try:
         yield db
     finally:
-        db.close() 
+        db.close()
+
+__all__ = ['engine', 'Base', 'SessionLocal', 'get_db', 'init_db']
+
+# Add ping/reconnect functionality
+@event.listens_for(engine, "engine_connect")
+def ping_connection(connection, branch):
+    if branch:
+        return
+
+    try:
+        connection.scalar("SELECT 1")
+    except Exception:
+        connection.connection.close()
+        raise 

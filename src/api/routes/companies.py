@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query, Path, Body
+from fastapi import APIRouter, Depends, Query, Path, Body, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from src.database import get_db
 from src.models import schemas, entities
 from src.api.controllers.company_controller import CompanyController
 from src.services.auth_service import AuthService
+from src.services.company_service import CompanyService
 
 router = APIRouter(
     prefix="/companies",
@@ -13,6 +14,7 @@ router = APIRouter(
 )
 
 company_controller = CompanyController()
+company_service = CompanyService()
 
 @router.get(
     "/",
@@ -69,9 +71,14 @@ def get_company(
 def create_company(
     company: schemas.CompanyCreate = Body(...),
     db: Session = Depends(get_db),
-    current_user: entities.User = Depends(AuthService.get_current_active_user)
+    current_user: schemas.User = Depends(AuthService.get_current_active_user)
 ):
-    return company_controller.create_company(db, company, current_user)
+    if current_user.role != entities.UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can create companies"
+        )
+    return company_service.create(db, company.dict())
 
 @router.put(
     "/{company_id}",

@@ -20,9 +20,10 @@ class ApplicationStatus(enum.Enum):
     WITHDRAWN = "withdrawn"
 
 class UserRole(str, enum.Enum):
-    CANDIDATE = "candidate"
-    RECRUITER = "recruiter"
-    ADMIN = "admin"
+    ADMIN = "ADMIN"
+    RECRUITER = "RECRUITER"
+    INTERVIEWER = "INTERVIEWER"
+    CANDIDATE = "CANDIDATE"
 
 class InterviewStepStatus(str, enum.Enum):
     PENDING = "pending"
@@ -83,22 +84,29 @@ class JobOpening(BaseEntity):
 class Candidate(BaseEntity):
     __tablename__ = "candidates"
 
+    id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    first_name = Column(String, index=True)
-    last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
-    phone = Column(String)
-    resume_url = Column(String)
-    linkedin_url = Column(String)
-    skills = Column(Text)  # Comma-separated or JSON string
-    experience_years = Column(Integer)
-    current_company = Column(String)
-    current_position = Column(String)
-    education = Column(Text)  # JSON string containing education history
-    available_from = Column(DateTime, nullable=True)
-    notes = Column(Text)
+    first_name = Column(String)
+    last_name = Column(String)
+    phone = Column(String, nullable=True)
+    resume_url = Column(String, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    skills = Column(String, nullable=True)
+    experience_years = Column(Integer, nullable=True)
+    current_company = Column(String, nullable=True)
+    current_position = Column(String, nullable=True)
+    education = Column(String, nullable=True)
+    available_from = Column(DateTime(timezone=True), nullable=True)
+    notes = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    user = relationship("User", back_populates="candidate")
+    user = relationship(
+        "User",
+        back_populates="candidate",
+        foreign_keys=[user_id]
+    )
     applications = relationship(
         "Application",
         back_populates="candidate",
@@ -130,26 +138,38 @@ class Application(BaseEntity):
 class User(BaseEntity):
     __tablename__ = "users"
 
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    role = Column(Enum(UserRole), default=UserRole.CANDIDATE)
+    first_name = Column(String)
+    last_name = Column(String)
+    role = Column(Enum(UserRole))
     is_active = Column(Boolean, default=True)
 
-    # Relationship with candidate if role is CANDIDATE
-    candidate = relationship("Candidate", back_populates="user", uselist=False)
-
-    def verify_password(self, password: str) -> bool:
-        return bcrypt.checkpw(
-            password.encode('utf-8'),
-            self.hashed_password.encode('utf-8')
-        )
+    # One-to-one relationship with Candidate
+    candidate = relationship(
+        "Candidate",
+        back_populates="user",
+        uselist=False,
+        foreign_keys="Candidate.user_id"
+    )
+    # Relationship for email templates
+    email_templates = relationship(
+        "EmailTemplate",
+        back_populates="created_by",
+        foreign_keys="EmailTemplate.created_by_id"
+    )
 
     @staticmethod
     def hash_password(password: str) -> str:
-        return bcrypt.hashpw(
-            password.encode('utf-8'),
-            bcrypt.gensalt()
-        ).decode('utf-8')
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return bcrypt.checkpw(
+            plain_password.encode(),
+            hashed_password.encode()
+        )
 
 class InterviewTemplate(BaseEntity):
     __tablename__ = "interview_templates"
@@ -233,4 +253,8 @@ class EmailTemplate(BaseEntity):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_by_id = Column(Integer, ForeignKey("users.id"))
     
-    created_by = relationship("User", back_populates="email_templates") 
+    created_by = relationship(
+        "User",
+        back_populates="email_templates",
+        foreign_keys=[created_by_id]
+    ) 

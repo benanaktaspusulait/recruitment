@@ -4,13 +4,66 @@ from datetime import datetime, timedelta, UTC
 import random
 
 def seed_database(db: Session):
-    # Create admin user
+    print("Starting database seeding...")
+    # Create users
     admin = entities.User(
         email="admin@company.com",
         hashed_password=entities.User.hash_password("admin123"),
-        role=entities.UserRole.ADMIN
+        role=entities.UserRole.ADMIN,
+        first_name="Admin",
+        last_name="User",
+        is_active=True
     )
-    db.add(admin)
+
+    recruiter = entities.User(
+        email="recruiter@company.com",
+        hashed_password=entities.User.hash_password("recruiter123"),
+        role=entities.UserRole.RECRUITER,
+        first_name="John",
+        last_name="Doe",
+        is_active=True
+    )
+
+    interviewer = entities.User(
+        email="interviewer@company.com",
+        hashed_password=entities.User.hash_password("interviewer123"),
+        role=entities.UserRole.INTERVIEWER,
+        first_name="Jane",
+        last_name="Smith",
+        is_active=True
+    )
+
+    # Add and commit users first
+    users = [admin, recruiter, interviewer]
+    db.add_all(users)
+    print("Adding users to database...")
+    db.commit()
+    print("Users added successfully")
+
+    # Create a candidate user and profile
+    candidate_user = entities.User(
+        email="candidate@company.com",
+        hashed_password=entities.User.hash_password("candidate123"),
+        role=entities.UserRole.CANDIDATE,
+        first_name="John",
+        last_name="Applicant",
+        is_active=True
+    )
+    db.add(candidate_user)
+    db.commit()
+
+    # Create candidate profile
+    candidate = entities.Candidate(
+        user_id=candidate_user.id,
+        email=candidate_user.email,
+        first_name=candidate_user.first_name,
+        last_name=candidate_user.last_name,
+        phone="+1234567890",
+        skills="Python, FastAPI, SQL",
+        experience_years=5,
+        education="Bachelor's in Computer Science"
+    )
+    db.add(candidate)
     db.commit()
 
     # Create sample companies
@@ -119,38 +172,9 @@ def seed_database(db: Session):
     db.add_all(job_openings)
     db.commit()
 
-    # Create sample candidates
-    candidates = []
-    for i in range(5):
-        user = entities.User(
-            email=f"candidate{i+1}@example.com",
-            hashed_password=entities.User.hash_password("password123"),
-            role=entities.UserRole.CANDIDATE
-        )
-        db.add(user)
-        db.commit()
-
-        candidate = entities.Candidate(
-            user=user,
-            first_name=f"John{i+1}",
-            last_name=f"Doe{i+1}",
-            email=f"candidate{i+1}@example.com",
-            phone=f"+1555000{i:04d}",
-            skills="Python, JavaScript, React, AWS",
-            experience_years=random.randint(3, 10),
-            current_company="Previous Corp",
-            current_position="Software Engineer",
-            education="{\"degree\": \"Bachelor's in Computer Science\", \"university\": \"Tech University\"}",
-            created_by=admin
-        )
-        candidates.append(candidate)
-    
-    db.add_all(candidates)
-    db.commit()
-
     # Create sample applications
     applications = []
-    for candidate in candidates[:3]:  # First 3 candidates apply
+    for candidate in [candidate]:  # Only one candidate
         application = entities.Application(
             candidate=candidate,
             job_opening=random.choice(job_openings),

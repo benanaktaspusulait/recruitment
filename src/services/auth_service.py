@@ -51,18 +51,13 @@ class AuthService:
             raise ValueError(f"Failed to create user: {str(e)}")
 
     @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[entities.User]:
-        user = db.query(entities.User).filter(entities.User.email == email).first()
-        if not user or not user.verify_password(password):
-            return None
-        return user
-
-    @staticmethod
-    def create_access_token(data: dict) -> str:
+    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
         to_encode = data.copy()
-        expire = datetime.now(UTC) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        if expires_delta:
+            expire = datetime.now(UTC) + expires_delta
+        else:
+            expire = datetime.now(UTC) + timedelta(minutes=15)
+        
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(
             to_encode, 
@@ -70,6 +65,29 @@ class AuthService:
             algorithm=settings.ALGORITHM
         )
         return encoded_jwt
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return entities.User.verify_password(plain_password, hashed_password)
+
+    @staticmethod
+    async def authenticate_user(
+        db: Session, 
+        email: str, 
+        password: str
+    ) -> Optional[entities.User]:
+        print(f"Attempting to authenticate user: {email}")
+        user = db.query(entities.User).filter(entities.User.email == email).first()
+        print(f"User found: {user is not None}")
+        if not user:
+            return None
+        
+        print("Verifying password...")
+        if not AuthService.verify_password(password, user.hashed_password):
+            print("Password verification failed")
+            return None
+        print("Authentication successful")
+        return user
 
     @staticmethod
     async def get_current_user(
@@ -99,9 +117,12 @@ class AuthService:
         return user
 
     @staticmethod
-    def get_current_active_user(
+    async def get_current_active_user(
         current_user: entities.User = Depends(get_current_user)
     ) -> entities.User:
         if not current_user.is_active:
-            raise HTTPException(status_code=400, detail="Inactive user")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Inactive user"
+            )
         return current_user 
