@@ -1,6 +1,5 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, Enum
 from sqlalchemy.orm import relationship
-from src.database import Base
 from src.models.base_entity import BaseEntity
 from datetime import datetime, UTC
 import enum
@@ -25,7 +24,7 @@ class UserRole(str, enum.Enum):
     RECRUITER = "recruiter"
     ADMIN = "admin"
 
-class Company(Base, BaseEntity):
+class Company(BaseEntity):
     __tablename__ = "companies"
 
     name = Column(String, index=True)
@@ -40,10 +39,8 @@ class Company(Base, BaseEntity):
         back_populates="company",
         cascade="all, delete-orphan"
     )
-    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
-    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class JobOpening(Base, BaseEntity):
+class JobOpening(BaseEntity):
     __tablename__ = "job_openings"
 
     title = Column(String, index=True)
@@ -62,10 +59,8 @@ class JobOpening(Base, BaseEntity):
         back_populates="job_opening",
         cascade="all, delete-orphan"
     )
-    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
-    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class Candidate(Base, BaseEntity):
+class Candidate(BaseEntity):
     __tablename__ = "candidates"
 
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
@@ -89,10 +84,8 @@ class Candidate(Base, BaseEntity):
         back_populates="candidate",
         cascade="all, delete-orphan"
     )
-    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
-    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class Application(Base, BaseEntity):
+class Application(BaseEntity):
     __tablename__ = "applications"
 
     candidate_id = Column(Integer, ForeignKey("candidates.id"))
@@ -107,10 +100,8 @@ class Application(Base, BaseEntity):
 
     candidate = relationship("Candidate", back_populates="applications")
     job_opening = relationship("JobOpening", back_populates="applications")
-    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
-    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class User(Base, BaseEntity):
+class User(BaseEntity):
     __tablename__ = "users"
 
     email = Column(String, unique=True, index=True)

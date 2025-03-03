@@ -3,7 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware as CORSMiddlewareClass
 from src.database import engine, Base
 from src.api.routes import companies, job_openings, candidates, applications
 from datetime import datetime, UTC
+from src.core.logging import setup_logging
 
+# Setup logging
+logger = setup_logging()
+
+logger.info("Starting application...")
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -14,6 +19,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+logger.info("FastAPI application configured")
 
 # Add CORS middleware
 app.add_middleware(
