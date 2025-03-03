@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, Enum
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, Enum, func
 from sqlalchemy.orm import relationship
 from src.models.base_entity import BaseEntity
 from datetime import datetime, UTC
@@ -217,4 +217,20 @@ class InterviewStep(BaseEntity):
 
     process = relationship("InterviewProcess", back_populates="steps")
     template_step = relationship("InterviewTemplateStep", back_populates="interview_steps")
-    interviewer = relationship("User", foreign_keys=[interviewer_id]) 
+    interviewer = relationship("User", foreign_keys=[interviewer_id])
+
+class EmailTemplate(BaseEntity):
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String)
+    subject_template = Column(String, nullable=False)
+    html_content = Column(Text, nullable=False)
+    type = Column(String, nullable=False)  # e.g., 'interview_success', 'interview_failure'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    
+    created_by = relationship("User", back_populates="email_templates") 

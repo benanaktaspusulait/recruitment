@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background-color: #28a745; 
+            color: white;
+            padding: 20px; 
+            text-align: center; 
+            border-radius: 5px;
+        }
+        .content { padding: 20px; }
+        .feedback { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-left: 4px solid #28a745;
+        }
+        .next-steps {
+            background-color: #e9ecef;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Congratulations!</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ candidate_name }},</p>
+            <p>We're pleased to inform you that you have successfully passed the {{ interview_type }} interview for the {{ job_title }} position at {{ company_name }}.</p>
+            
+            <div class="feedback">
+                <p><strong>Feedback from your interviewer:</strong></p>
+                <p>{{ feedback }}</p>
+            </div>
+
+            <div class="next-steps">
+                <p><strong>Next Steps:</strong></p>
+                {% if is_final_step %}
+                <p>Our recruitment team will contact you soon with further details about the offer process.</p>
+                {% else %}
+                <p>You will receive information about the next interview step shortly.</p>
+                {% endif %}
+            </div>
+
+            <p>Best regards,<br>{{ company_name }} Recruitment Team</p>
+        </div>
+        <div class="footer">
+            <p>If you have any questions, please don't hesitate to contact your recruiter.</p>
+        </div>
+    </div>
+</body>
+</html> 

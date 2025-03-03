@@ -96,23 +96,20 @@ class InterviewProcessService(BaseService[entities.InterviewProcess]):
         return step
 
     async def _send_process_started_email(self, application: entities.Application):
-        subject = "Your Interview Process Has Started"
-        template = "interview_process_started.html"
         data = {
             "candidate_name": f"{application.candidate.first_name} {application.candidate.last_name}",
             "job_title": application.job_opening.title,
             "company_name": application.job_opening.company.name
         }
         await self.email_service.send_email(
+            db=None,
             to_email=application.candidate.email,
-            subject=subject,
-            template_name=template,
-            template_data=data
+            template_type="interview_process_started",
+            template_data=data,
+            template_name=None
         )
 
     async def _send_interview_scheduled_email(self, step: entities.InterviewStep):
-        subject = f"Interview Scheduled: {step.template_step.name}"
-        template = "interview_scheduled.html"
         data = {
             "candidate_name": f"{step.process.application.candidate.first_name}",
             "interview_type": step.template_step.name,
@@ -122,24 +119,35 @@ class InterviewProcessService(BaseService[entities.InterviewProcess]):
             "meeting_link": step.meeting_link
         }
         await self.email_service.send_email(
+            db=None,
             to_email=step.process.application.candidate.email,
-            subject=subject,
-            template_name=template,
-            template_data=data
+            template_type="interview_scheduled",
+            template_data=data,
+            template_name=None
         )
 
     async def _send_interview_result_email(self, step: entities.InterviewStep):
-        subject = f"Interview Results: {step.template_step.name}"
-        template = "interview_results.html"
+        is_success = step.status == entities.InterviewStepStatus.PASSED
+        
+        # Determine template type based on result
+        template_type = "interview_success" if is_success else "interview_failure"
+        
+        # Check if this is the final interview step
+        is_final_step = step.template_step.order == len(step.process.template.steps)
+
         data = {
             "candidate_name": f"{step.process.application.candidate.first_name}",
             "interview_type": step.template_step.name,
-            "result": step.status.value,
-            "feedback": step.feedback
+            "job_title": step.process.application.job_opening.title,
+            "company_name": step.process.application.job_opening.company.name,
+            "feedback": step.feedback or "No specific feedback provided.",
+            "is_final_step": is_final_step
         }
+
         await self.email_service.send_email(
+            db=None,
             to_email=step.process.application.candidate.email,
-            subject=subject,
-            template_name=template,
-            template_data=data
+            template_type=template_type,
+            template_data=data,
+            template_name=None
         ) 

@@ -5,17 +5,15 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 from loguru import logger
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from src.core.config import get_settings
+from src.services.email_template_service import EmailTemplateService
+from sqlalchemy.orm import Session
 
 class EmailService:
     def __init__(self):
         self.logger = logger.bind(service="EmailService")
-        templates_dir = Path(__file__).parent.parent / "templates" / "emails"
-        self.env = Environment(
-            loader=FileSystemLoader(str(templates_dir)),
-            autoescape=select_autoescape(['html', 'xml'])
-        )
+        self.template_service = EmailTemplateService()
         
         # Email configuration
         settings = get_settings()
@@ -27,15 +25,21 @@ class EmailService:
 
     async def send_email(
         self,
+        db: Session,
         to_email: str,
-        subject: str,
-        template_name: str,
+        template_type: str,
+        *,
+        template_name: Optional[str] = None,
         template_data: Dict[str, Any]
     ) -> None:
         try:
-            # Render template
-            template = self.env.get_template(template_name)
-            html_content = template.render(**template_data)
+            # Get and render template
+            template = self.template_service.get_active_template(
+                db, template_type, template_name
+            )
+            subject, html_content = self.template_service.render_template(
+                template, template_data
+            )
 
             # Create message
             message = MIMEMultipart()

@@ -184,4 +184,24 @@ class InterviewStep(BaseModel):
     template_step: InterviewTemplateStepBase
 
     class Config:
+        from_attributes = True
+
+class EmailTemplateBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    subject_template: str
+    html_content: str
+    type: str
+    is_active: bool = True
+
+class EmailTemplateCreate(EmailTemplateBase):
+    pass
+
+class EmailTemplate(EmailTemplateBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    created_by_id: int
+
+    class Config:
         from_attributes = True 

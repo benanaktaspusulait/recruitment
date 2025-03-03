@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background-color: #6c757d; 
+            color: white;
+            padding: 20px; 
+            text-align: center; 
+            border-radius: 5px;
+        }
+        .content { padding: 20px; }
+        .feedback { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-left: 4px solid #6c757d;
+        }
+        .resources {
+            background-color: #e9ecef;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Interview Results</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ candidate_name }},</p>
+            <p>Thank you for participating in the {{ interview_type }} interview for the {{ job_title }} position at {{ company_name }}.</p>
+            
+            <p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p>
+
+            {% if feedback %}
+            <div class="feedback">
+                <p><strong>Feedback from your interviewer:</strong></p>
+                <p>{{ feedback }}</p>
+            </div>
+            {% endif %}
+
+            <div class="resources">
+                <p><strong>Keep in Touch:</strong></p>
+                <ul>
+                    <li>Follow us on LinkedIn for future opportunities</li>
+                    <li>Check our careers page regularly for new openings</li>
+                    <li>Consider applying for other positions that match your skills</li>
+                </ul>
+            </div>
+
+            <p>We appreciate your interest in {{ company_name }} and wish you the best in your career search.</p>
+
+            <p>Best regards,<br>{{ company_name }} Recruitment Team</p>
+        </div>
+        <div class="footer">
+            <p>This email is automated. Please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html> 
