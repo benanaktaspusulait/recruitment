@@ -35,7 +35,11 @@ class Company(Base, BaseEntity):
     description = Column(Text)
     active = Column(Boolean, default=True)
 
-    job_openings = relationship("JobOpening", back_populates="company")
+    job_openings = relationship(
+        "JobOpening",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
     created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
     updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
@@ -53,7 +57,11 @@ class JobOpening(Base, BaseEntity):
     status = Column(Enum(JobStatus), default=JobStatus.OPEN)
 
     company = relationship("Company", back_populates="job_openings")
-    applications = relationship("Application", back_populates="job_opening")
+    applications = relationship(
+        "Application",
+        back_populates="job_opening",
+        cascade="all, delete-orphan"
+    )
     created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
     updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
@@ -76,7 +84,11 @@ class Candidate(Base, BaseEntity):
     notes = Column(Text)
 
     user = relationship("User", back_populates="candidate")
-    applications = relationship("Application", back_populates="candidate")
+    applications = relationship(
+        "Application",
+        back_populates="candidate",
+        cascade="all, delete-orphan"
+    )
     created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
     updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
@@ -98,16 +110,13 @@ class Application(Base, BaseEntity):
     created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
     updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class User(Base):
+class User(Base, BaseEntity):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.CANDIDATE)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationship with candidate if role is CANDIDATE
     candidate = relationship("Candidate", back_populates="user", uselist=False)

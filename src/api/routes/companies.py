@@ -2,14 +2,17 @@ from fastapi import APIRouter, Depends, Query, Path, Body
 from sqlalchemy.orm import Session
 from typing import List
 from src.database import get_db
-from src.models import schemas
+from src.models import schemas, entities
 from src.api.controllers.company_controller import CompanyController
+from src.services.auth_service import AuthService
 
 router = APIRouter(
     prefix="/companies",
     tags=["Companies"],
     responses={404: {"description": "Not found"}}
 )
+
+company_controller = CompanyController()
 
 @router.get(
     "/",
@@ -22,7 +25,7 @@ def get_companies(
     limit: int = Query(100, ge=1, le=100, description="Maximum number of companies to return"),
     db: Session = Depends(get_db)
 ):
-    return CompanyController.get_companies(db, skip, limit)
+    return company_controller.get_companies(db, skip, limit)
 
 @router.get(
     "/{company_id}",
@@ -50,7 +53,7 @@ def get_company(
     company_id: int = Path(..., ge=1, description="The ID of the company to retrieve"),
     db: Session = Depends(get_db)
 ):
-    return CompanyController.get_company(db, company_id)
+    return company_controller.get_company(db, company_id)
 
 @router.post(
     "/",
@@ -58,35 +61,17 @@ def get_company(
     status_code=201,
     summary="Create a new company",
     responses={
-        201: {
-            "description": "Company created successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "name": "Tech Corp",
-                        "industry": "Technology",
-                        "location": "San Francisco, CA"
-                    }
-                }
-            }
-        }
+        201: {"description": "Company created successfully"},
+        403: {"description": "Not authorized to create companies"},
+        400: {"description": "Invalid request"}
     }
 )
 def create_company(
-    company: schemas.CompanyCreate = Body(
-        ...,
-        example={
-            "name": "Tech Corp",
-            "industry": "Technology",
-            "location": "San Francisco, CA",
-            "website": "https://techcorp.com",
-            "description": "Leading technology company"
-        }
-    ),
-    db: Session = Depends(get_db)
+    company: schemas.CompanyCreate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: entities.User = Depends(AuthService.get_current_active_user)
 ):
-    return CompanyController.create_company(db, company)
+    return company_controller.create_company(db, company, current_user)
 
 @router.put(
     "/{company_id}",
@@ -94,12 +79,14 @@ def create_company(
     summary="Update a company",
     responses={
         200: {"description": "Company updated successfully"},
+        403: {"description": "Not authorized to update companies"},
         404: {"description": "Company not found"}
     }
 )
 def update_company(
     company_id: int = Path(..., ge=1),
     company: schemas.CompanyBase = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: entities.User = Depends(AuthService.get_current_active_user)
 ):
-    return CompanyController.update_company(db, company_id, company) 
+    return company_controller.update_company(db, company_id, company, current_user) 

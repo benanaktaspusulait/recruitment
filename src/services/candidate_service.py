@@ -1,53 +1,40 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from src.models import entities, schemas
+from src.services.base_service import BaseService
 from typing import List, Optional
 
-class CandidateService:
-    @staticmethod
-    def get_candidates(db: Session, skip: int = 0, limit: int = 100) -> List[entities.Candidate]:
-        return db.query(entities.Candidate).offset(skip).limit(limit).all()
+class CandidateService(BaseService[entities.Candidate]):
+    def __init__(self):
+        super().__init__(entities.Candidate)
 
-    @staticmethod
-    def get_candidate(db: Session, candidate_id: int) -> Optional[entities.Candidate]:
-        return db.query(entities.Candidate).filter(entities.Candidate.id == candidate_id).first()
+    def get_candidates(self, db: Session, skip: int = 0, limit: int = 100) -> List[entities.Candidate]:
+        return self.get_all(db, skip=skip, limit=limit)
 
-    @staticmethod
-    def create_candidate(db: Session, candidate: schemas.CandidateCreate) -> entities.Candidate:
+    def get_candidate(self, db: Session, candidate_id: int) -> Optional[entities.Candidate]:
+        return self.get_by_id(db, candidate_id)
+
+    def create_candidate(
+        self,
+        db: Session,
+        candidate: schemas.CandidateCreate,
+        current_user: entities.User
+    ) -> entities.Candidate:
         # Check if candidate with email already exists
-        existing_candidate = db.query(entities.Candidate).filter(
+        if db.query(entities.Candidate).filter(
             entities.Candidate.email == candidate.email
-        ).first()
-        if existing_candidate:
+        ).first():
             raise ValueError(f"Candidate with email {candidate.email} already exists")
 
-        db_candidate = entities.Candidate(**candidate.model_dump())
-        try:
-            db.add(db_candidate)
-            db.commit()
-            db.refresh(db_candidate)
-            return db_candidate
-        except IntegrityError:
-            db.rollback()
-            raise ValueError("Failed to create candidate")
+        candidate_data = candidate.model_dump()
+        return self.create(db, candidate_data, current_user)
 
-    @staticmethod
     def update_candidate(
-        db: Session, 
-        candidate_id: int, 
-        candidate: schemas.CandidateBase
+        self,
+        db: Session,
+        candidate_id: int,
+        candidate: schemas.CandidateBase,
+        current_user: entities.User
     ) -> Optional[entities.Candidate]:
-        db_candidate = db.query(entities.Candidate).filter(
-            entities.Candidate.id == candidate_id
-        ).first()
-        if db_candidate:
-            for key, value in candidate.model_dump().items():
-                setattr(db_candidate, key, value)
-            try:
-                db.commit()
-                db.refresh(db_candidate)
-                return db_candidate
-            except IntegrityError:
-                db.rollback()
-                raise ValueError("Failed to update candidate")
-        return None 
+        candidate_data = candidate.model_dump()
+        return self.update(db, candidate_id, candidate_data, current_user) 
