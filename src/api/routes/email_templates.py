@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Path, Body
+from fastapi import APIRouter, Depends, Query, Path, Body, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from src.database import get_db
@@ -40,6 +40,11 @@ def list_templates(
     db: Session = Depends(get_db),
     current_user: entities.User = Depends(AuthService.get_current_active_user)
 ):
+    if current_user.role not in [entities.UserRole.ADMIN, entities.UserRole.RECRUITER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view email templates"
+        )
     return template_service.get_all(
         db,
         type=type,
