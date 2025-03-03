@@ -6,8 +6,10 @@ from src.api.routes import companies, job_openings, candidates, applications, in
 from datetime import datetime, UTC
 from src.core.logging import setup_logging
 from src.core.config import get_settings
+from src.core.middleware.db_profiler import DBProfilerMiddleware
+from src.core.monitoring import setup_azure_monitoring
+from sqlalchemy.exc import SQLAlchemyError
 import typer
-from sqlalchemy.orm import Session
 
 cli = typer.Typer()
 
@@ -41,6 +43,10 @@ logger.info("Starting application...")
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Setup Azure monitoring in production
+if settings.ENVIRONMENT == "production":
+    setup_azure_monitoring(app, engine)
+
 app = FastAPI(
     title="Recruitment System API",
     description="REST API for managing job openings, candidates, and applications",
@@ -58,6 +64,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add database profiler middleware in non-production environments
+if settings.ENVIRONMENT != "production":
+    app.add_middleware(DBProfilerMiddleware)
 
 # Include routers
 app.include_router(companies.router, prefix="/v1", tags=["Companies"])
@@ -78,8 +88,25 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
+    # Check database connection
+    try:
+        db = SessionLocal()
+        try:
+            # Test query
+            db.execute("SELECT 1::integer")
+            db_status = "healthy"
+        except SQLAlchemyError as e:
+            logger.error(f"Database health check failed: {str(e)}")
+            db_status = "unhealthy"
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Database connection failed: {str(e)}")
+        db_status = "unhealthy"
+
     return {
         "status": "healthy",
+        "database": db_status,
         "timestamp": datetime.now(UTC).isoformat()
     }
 
