@@ -39,3 +39,4 @@ ENV/
 library.db
 *.sqlite3
 *.log 
+/identifier.sqlite

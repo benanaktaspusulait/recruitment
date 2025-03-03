@@ -13,46 +13,11 @@ import typer
 
 cli = typer.Typer()
 
-def initialize_database(seed: bool = False):
-    """Initialize database and optionally seed it with data"""
-    init_db()  # This will recreate all tables
-    
-    if seed:
-        logger.info("Seeding database...")
-        db = SessionLocal()
-        try:
-            seed_database(db)
-            logger.info("Database seeded successfully")
-        finally:
-            db.close()
-
-@cli.command()
-def run(
-    seed: bool = typer.Option(
-        False,
-        "--seed",
-        "-s",
-        help="Seed the database with sample data"
-    )
-):
-    """Run the FastAPI application"""
-    initialize_database(seed)
-
-    import uvicorn
-    uvicorn.run("src.main:app", host="127.0.0.1", port=8000, reload=True)
-
 # Setup logging
 logger = setup_logging()
 settings = get_settings()
 
-logger.info("Starting application...")
-# Initialize database
-initialize_database()
-
-# Setup Azure monitoring in production
-if settings.ENVIRONMENT == "production":
-    setup_azure_monitoring(app, engine)
-
+# Initialize FastAPI app
 app = FastAPI(
     title="Recruitment System API",
     description="REST API for managing job openings, candidates, and applications",
@@ -90,7 +55,46 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
-logger.info("FastAPI application configured")
+
+def initialize_database(seed: bool = False):
+    """Initialize database and optionally seed it with data"""
+    logger.info("Initializing database...")
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
+    if seed:
+        logger.info("Seeding database...")
+        db = SessionLocal()
+        try:
+            seed_database(db)
+            logger.info("Database seeded successfully")
+        finally:
+            db.close()
+
+@cli.command()
+def run(
+    seed: bool = typer.Option(
+        False,
+        "--seed",
+        "-s",
+        help="Seed the database with sample data"
+    )
+):
+    """Run the FastAPI application"""
+    logger.info("Starting application with seed=%s", seed)
+    initialize_database(seed)
+
+    import uvicorn
+    uvicorn.run("src.main:app", host="127.0.0.1", port=8000, reload=True)
+
+# Setup Azure monitoring in production
+if settings.ENVIRONMENT == "production":
+    try:
+        setup_azure_monitoring(app, engine)
+    except Exception as e:
+        logger.warning(f"Failed to setup Azure monitoring: {e}")
+
+logger.info("Starting application...")
 
 # Add CORS middleware
 app.add_middleware(

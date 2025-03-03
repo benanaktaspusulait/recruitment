@@ -1,10 +1,37 @@
+import logging
 from sqlalchemy.orm import Session
 from src.models import entities
 from datetime import datetime, timedelta, UTC
 import random
 
+logger = logging.getLogger(__name__)
+
+def clear_tables(db: Session):
+    """Clear all tables before seeding"""
+    logger.info("Clearing existing data...")
+    try:
+        # Delete in correct order to respect foreign key constraints
+        db.execute("DELETE FROM applications")
+        db.execute("DELETE FROM candidates")
+        db.execute("DELETE FROM job_openings")
+        db.execute("DELETE FROM companies")
+        db.execute("DELETE FROM interview_template_steps")
+        db.execute("DELETE FROM interview_templates")
+        db.execute("DELETE FROM email_templates")
+        db.execute("DELETE FROM users")
+        db.commit()
+        logger.info("All tables cleared successfully")
+    except Exception as e:
+        logger.error(f"Error clearing tables: {e}")
+        db.rollback()
+        raise
+
 def seed_database(db: Session):
-    print("Starting database seeding...")
+    logger.info("Starting database seeding...")
+    
+    # Clear existing data
+    clear_tables(db)
+
     # Create users
     admin = entities.User(
         email="admin@company.com",
@@ -14,6 +41,16 @@ def seed_database(db: Session):
         last_name="User",
         is_active=True
     )
+
+    logger.info("Creating admin user...")
+    db.add(admin)
+    try:
+        db.commit()
+        logger.info("Admin user created successfully")
+    except Exception as e:
+        logger.error(f"Error creating admin user: {e}")
+        db.rollback()
+        raise
 
     recruiter = entities.User(
         email="recruiter@company.com",
@@ -34,11 +71,15 @@ def seed_database(db: Session):
     )
 
     # Add and commit users first
-    users = [admin, recruiter, interviewer]
+    users = [recruiter, interviewer]
     db.add_all(users)
-    print("Adding users to database...")
-    db.commit()
-    print("Users added successfully")
+    try:
+        db.commit()
+        logger.info("Additional users created successfully")
+    except Exception as e:
+        logger.error(f"Error creating additional users: {e}")
+        db.rollback()
+        raise
 
     # Create a candidate user and profile
     candidate_user = entities.User(
