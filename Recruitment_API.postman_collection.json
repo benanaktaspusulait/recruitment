@@ -418,6 +418,236 @@
           "path": ["health"]
         }
       }
+    },
+    {
+      "name": "Interviews",
+      "item": [
+        {
+          "name": "List Interview Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/interviews/templates?skip=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "interviews", "templates"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Interview Template",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Template created with correct data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var requestData = JSON.parse(request.data);",
+                  "",
+                  "    pm.expect(jsonData.name).to.eql(requestData.name);",
+                  "    pm.expect(jsonData.description).to.eql(requestData.description);",
+                  "    pm.expect(jsonData.steps).to.be.an('array').that.has.lengthOf(requestData.steps.length);",
+                  "    pm.environment.set(\"template_id\", jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Standard Technical Interview\",\n    \"description\": \"Standard technical interview process for software engineers\",\n    \"is_active\": true,\n    \"steps\": [\n        {\n            \"name\": \"Initial Screening\",\n            \"description\": \"Initial technical screening call\",\n            \"step_type\": \"screening\",\n            \"order\": 1,\n            \"duration_minutes\": 30,\n            \"required_participants\": [\"recruiter\", \"tech_lead\"],\n            \"evaluation_criteria\": [\"technical_background\", \"communication\"],\n            \"passing_score\": 7\n        },\n        {\n            \"name\": \"Technical Interview\",\n            \"description\": \"In-depth technical interview\",\n            \"step_type\": \"technical\",\n            \"order\": 2,\n            \"duration_minutes\": 60,\n            \"required_participants\": [\"senior_engineer\", \"tech_lead\"],\n            \"evaluation_criteria\": [\"problem_solving\", \"coding_skills\", \"system_design\"],\n            \"passing_score\": 8\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/interviews/templates",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "interviews", "templates"]
+            },
+            "description": "Creates a new interview template with multiple steps. Requires recruiter or admin role."
+          }
+        },
+        {
+          "name": "Start Interview Process",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Process started with correct steps\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('pending');",
+                  "    pm.environment.set(\"step_id\", jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/interviews/applications/{{application_id}}/start",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "interviews", "applications", "{{application_id}}", "start"]
+            },
+            "description": "Starts the interview process for a specific application. The process will be based on the job opening's interview template."
+          }
+        },
+        {
+          "name": "Update Interview Step",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Step updated correctly\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var requestData = JSON.parse(request.data);",
+                  "",
+                  "    pm.expect(jsonData.status).to.eql(requestData.status);",
+                  "    if (requestData.scheduled_at) {",
+                  "        pm.expect(jsonData.scheduled_at).to.include(requestData.scheduled_at.split('T')[0]);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"scheduled\",\n    \"scheduled_at\": \"2024-03-20T14:00:00Z\",\n    \"interviewer_id\": 1,\n    \"meeting_link\": \"https://meet.google.com/abc-defg-hij\",\n    \"location\": \"Remote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/interviews/steps/{{step_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "interviews", "steps", "{{step_id}}"]
+            },
+            "description": "Updates an interview step with scheduling information, results, or feedback."
+          }
+        },
+        {
+          "name": "Get Interview Process Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/interviews/applications/{{application_id}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "interviews", "applications", "{{application_id}}", "process"]
+            },
+            "description": "Gets detailed information about an application's interview process including all steps."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Process has all required fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.steps).to.be.an('array');",
+                  "    pm.expect(jsonData.current_step).to.be.a('number');",
+                  "    pm.expect(jsonData.status).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [
@@ -454,6 +684,21 @@
     },
     {
       "key": "company_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "application_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "step_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "template_id",
       "value": "",
       "type": "string"
     }

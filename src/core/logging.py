@@ -3,8 +3,10 @@ import sys
 from pathlib import Path
 from loguru import logger
 from datetime import datetime
+from src.core.config import get_settings
 
 def setup_logging():
+    settings = get_settings()
     # Create logs directory if it doesn't exist
     LOGS_DIR = Path("logs")
     LOGS_DIR.mkdir(exist_ok=True)
@@ -16,13 +18,13 @@ def setup_logging():
     logger.add(
         sys.stdout,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        level="INFO"
+        level=settings.LOG_LEVEL
     )
     
     logger.add(
         LOGS_DIR / f"app_{datetime.now().strftime('%Y%m%d')}.log",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-        level="DEBUG",
+        level="DEBUG" if settings.ENVIRONMENT == "development" else "INFO",
         rotation="00:00",  # Create new file at midnight
         retention="30 days",  # Keep logs for 30 days
     )

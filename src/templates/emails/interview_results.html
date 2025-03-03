@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .feedback { background-color: #f8f9fa; padding: 15px; margin: 15px 0; }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Interview Results</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ candidate_name }},</p>
+            <p>Your {{ interview_type }} has been completed.</p>
+            
+            <div class="feedback">
+                <p><strong>Result:</strong> {{ result }}</p>
+                {% if feedback %}
+                <p><strong>Feedback:</strong></p>
+                <p>{{ feedback }}</p>
+                {% endif %}
+            </div>
+
+            <p>Best regards,<br>Recruitment Team</p>
+        </div>
+        <div class="footer">
+            <p>If you have any questions, please contact your recruiter.</p>
+        </div>
+    </div>
+</body>
+</html> 

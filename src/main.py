@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware as CORSMiddlewareClass
 from src.database import engine, Base
-from src.api.routes import companies, job_openings, candidates, applications
+from src.api.routes import companies, job_openings, candidates, applications, interviews
 from datetime import datetime, UTC
 from src.core.logging import setup_logging
+from src.core.config import get_settings
 
 # Setup logging
 logger = setup_logging()
+settings = get_settings()
 
 logger.info("Starting application...")
 # Create database tables
@@ -35,6 +37,7 @@ app.include_router(companies.router, prefix="/v1", tags=["Companies"])
 app.include_router(job_openings.router, prefix="/v1", tags=["Job Openings"])
 app.include_router(candidates.router, prefix="/v1", tags=["Candidates"])
 app.include_router(applications.router, prefix="/v1", tags=["Applications"])
+app.include_router(interviews.router, prefix="/v1", tags=["Interviews"])
 
 @app.get("/")
 async def root():

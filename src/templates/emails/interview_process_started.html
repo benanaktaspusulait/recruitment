@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Interview Process Started</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ candidate_name }},</p>
+            <p>We're excited to inform you that your interview process has started for the {{ job_title }} position at {{ company_name }}.</p>
+            <p>You will receive separate emails for each interview step with scheduling details.</p>
+            <p>Best regards,<br>{{ company_name }} Recruitment Team</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message, please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html> 
