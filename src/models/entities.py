@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from src.database import Base
 from datetime import datetime, UTC
 import enum
+import bcrypt
 
 class JobStatus(enum.Enum):
     OPEN = "open"
@@ -17,6 +18,11 @@ class ApplicationStatus(enum.Enum):
     HIRED = "hired"
     REJECTED = "rejected"
     WITHDRAWN = "withdrawn"
+
+class UserRole(str, enum.Enum):
+    CANDIDATE = "candidate"
+    RECRUITER = "recruiter"
+    ADMIN = "admin"
 
 class Company(Base):
     __tablename__ = "companies"
@@ -55,6 +61,7 @@ class Candidate(Base):
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     first_name = Column(String, index=True)
     last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
@@ -71,6 +78,7 @@ class Candidate(Base):
     available_from = Column(DateTime, nullable=True)
     notes = Column(Text)
 
+    user = relationship("User", back_populates="candidate")
     applications = relationship("Application", back_populates="candidate")
 
 class Application(Base):
@@ -89,4 +97,31 @@ class Application(Base):
     salary_expectation = Column(String)
 
     candidate = relationship("Candidate", back_populates="applications")
-    job_opening = relationship("JobOpening", back_populates="applications") 
+    job_opening = relationship("JobOpening", back_populates="applications")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(Enum(UserRole), default=UserRole.CANDIDATE)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    # Relationship with candidate if role is CANDIDATE
+    candidate = relationship("Candidate", back_populates="user", uselist=False)
+
+    def verify_password(self, password: str) -> bool:
+        return bcrypt.checkpw(
+            password.encode('utf-8'),
+            self.hashed_password.encode('utf-8')
+        )
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return bcrypt.hashpw(
+            password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8') 

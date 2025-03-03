@@ -1,8 +1,8 @@
-from pydantic import BaseModel, EmailStr, HttpUrl, constr
+from pydantic import BaseModel, EmailStr, HttpUrl, constr, SecretStr
 from pydantic.types import constr
 from typing import Optional, List
 from datetime import datetime
-from src.models.entities import JobStatus, ApplicationStatus
+from src.models.entities import JobStatus, ApplicationStatus, UserRole
 
 # Company Schemas
 class CompanyBase(BaseModel):
@@ -102,4 +102,34 @@ class Application(ApplicationBase):
     job_opening: JobOpening
     
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+# Auth Schemas
+class UserBase(BaseModel):
+    email: EmailStr
+
+class UserCreate(UserBase):
+    password: SecretStr
+    role: UserRole = UserRole.CANDIDATE
+    
+    # If role is candidate, these are required
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+
+class User(UserBase):
+    id: int
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class TokenData(BaseModel):
+    email: str
+    role: UserRole 
