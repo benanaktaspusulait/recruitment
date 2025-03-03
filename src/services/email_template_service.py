@@ -3,7 +3,7 @@ from src.models import entities, schemas
 from src.services.base_service import BaseService
 from typing import List, Optional
 from jinja2 import Template
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 class EmailTemplateService(BaseService[entities.EmailTemplate]):
     def __init__(self):
@@ -16,14 +16,21 @@ class EmailTemplateService(BaseService[entities.EmailTemplate]):
         template: schemas.EmailTemplateCreate,
         current_user: entities.User
     ) -> entities.EmailTemplate:
-        # Validate template syntax
+        db_template = entities.EmailTemplate(
+            **template.dict(),
+            created_by=current_user
+        )
+        db.add(db_template)
         try:
-            Template(template.subject_template)
-            Template(template.html_content)
+            db.commit()
+            db.refresh(db_template)
+            return db_template
         except Exception as e:
-            raise ValueError(f"Invalid template syntax: {str(e)}")
-
-        return self.create(db, template.model_dump(), current_user)
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
 
     def get_active_template(
         self,
@@ -64,4 +71,19 @@ class EmailTemplateService(BaseService[entities.EmailTemplate]):
             return subject, content
         except Exception as e:
             self.logger.error(f"Template rendering failed: {str(e)}")
-            raise ValueError(f"Failed to render template: {str(e)}") 
+            raise ValueError(f"Failed to render template: {str(e)}")
+
+    def get_all(
+        self,
+        db: Session,
+        type: str = None,
+        is_active: bool = True
+    ) -> list[entities.EmailTemplate]:
+        query = db.query(entities.EmailTemplate)
+        
+        if type:
+            query = query.filter(entities.EmailTemplate.type == type)
+        if is_active is not None:
+            query = query.filter(entities.EmailTemplate.is_active == is_active)
+            
+        return query.all() 
