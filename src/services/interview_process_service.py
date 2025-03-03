@@ -64,7 +64,7 @@ class InterviewProcessService(BaseService[entities.InterviewProcess]):
 
         return process
 
-    def update_interview_step(
+    async def update_interview_step(
         self,
         db: Session,
         step_id: int,

@@ -26,7 +26,7 @@ class InterviewProcessController:
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    def update_step(
+    async def update_step(
         self,
         db: Session,
         step_id: int,
@@ -39,7 +39,7 @@ class InterviewProcessController:
                 detail="Only recruiters and admins can update interview steps"
             )
         try:
-            return self.service.update_interview_step(db, step_id, update, current_user)
+            return await self.service.update_interview_step(db, step_id, update, current_user)
         except HTTPException:
             raise
         except Exception as e:

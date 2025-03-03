@@ -74,10 +74,10 @@ def start_interview_process(
         404: {"description": "Step not found"}
     }
 )
-def update_interview_step(
+async def update_interview_step(
     step_id: int = Path(..., ge=1),
     update: schemas.InterviewStepUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: entities.User = Depends(AuthService.get_current_active_user)
 ):
-    return process_controller.update_step(db, step_id, update, current_user) 
+    return await process_controller.update_step(db, step_id, update, current_user) 
