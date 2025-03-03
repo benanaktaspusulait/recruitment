@@ -24,6 +24,24 @@ class UserRole(str, enum.Enum):
     RECRUITER = "recruiter"
     ADMIN = "admin"
 
+class InterviewStepStatus(str, enum.Enum):
+    PENDING = "pending"
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    PASSED = "passed"
+
+class InterviewStepType(str, enum.Enum):
+    SCREENING = "screening"
+    TECHNICAL = "technical"
+    BEHAVIORAL = "behavioral"
+    SYSTEM_DESIGN = "system_design"
+    CODING = "coding"
+    CULTURE_FIT = "culture_fit"
+    HR = "hr"
+    FINAL = "final"
+
 class Company(BaseEntity):
     __tablename__ = "companies"
 
@@ -45,6 +63,7 @@ class JobOpening(BaseEntity):
 
     title = Column(String, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"))
+    interview_template_id = Column(Integer, ForeignKey("interview_templates.id"))
     description = Column(Text)
     requirements = Column(Text)
     location = Column(String)
@@ -54,6 +73,7 @@ class JobOpening(BaseEntity):
     status = Column(Enum(JobStatus), default=JobStatus.OPEN)
 
     company = relationship("Company", back_populates="job_openings")
+    interview_template = relationship("InterviewTemplate", back_populates="job_openings")
     applications = relationship(
         "Application",
         back_populates="job_opening",
@@ -100,6 +120,12 @@ class Application(BaseEntity):
 
     candidate = relationship("Candidate", back_populates="applications")
     job_opening = relationship("JobOpening", back_populates="applications")
+    interview_process = relationship(
+        "InterviewProcess",
+        back_populates="application",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
 class User(BaseEntity):
     __tablename__ = "users"
@@ -123,4 +149,72 @@ class User(BaseEntity):
         return bcrypt.hashpw(
             password.encode('utf-8'),
             bcrypt.gensalt()
-        ).decode('utf-8') 
+        ).decode('utf-8')
+
+class InterviewTemplate(BaseEntity):
+    __tablename__ = "interview_templates"
+
+    name = Column(String, index=True)
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+
+    steps = relationship(
+        "InterviewTemplateStep",
+        back_populates="template",
+        cascade="all, delete-orphan",
+        order_by="InterviewTemplateStep.order"
+    )
+    job_openings = relationship("JobOpening", back_populates="interview_template")
+
+class InterviewTemplateStep(BaseEntity):
+    __tablename__ = "interview_template_steps"
+
+    template_id = Column(Integer, ForeignKey("interview_templates.id"))
+    name = Column(String)
+    description = Column(Text)
+    step_type = Column(Enum(InterviewStepType))
+    order = Column(Integer)
+    duration_minutes = Column(Integer)
+    required_participants = Column(Text)  # JSON array of roles/departments
+    evaluation_criteria = Column(Text)    # JSON array of criteria
+    passing_score = Column(Integer)       # Minimum score to pass
+
+    template = relationship("InterviewTemplate", back_populates="steps")
+    interview_steps = relationship("InterviewStep", back_populates="template_step")
+
+class InterviewProcess(BaseEntity):
+    __tablename__ = "interview_processes"
+
+    application_id = Column(Integer, ForeignKey("applications.id"))
+    template_id = Column(Integer, ForeignKey("interview_templates.id"))
+    current_step = Column(Integer)
+    status = Column(Enum(InterviewStepStatus), default=InterviewStepStatus.PENDING)
+    notes = Column(Text)
+
+    application = relationship("Application", back_populates="interview_process")
+    template = relationship("InterviewTemplate")
+    steps = relationship(
+        "InterviewStep",
+        back_populates="process",
+        cascade="all, delete-orphan",
+        order_by="InterviewStep.order"
+    )
+
+class InterviewStep(BaseEntity):
+    __tablename__ = "interview_steps"
+
+    process_id = Column(Integer, ForeignKey("interview_processes.id"))
+    template_step_id = Column(Integer, ForeignKey("interview_template_steps.id"))
+    order = Column(Integer)
+    scheduled_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(Enum(InterviewStepStatus), default=InterviewStepStatus.PENDING)
+    score = Column(Integer, nullable=True)
+    feedback = Column(Text)
+    interviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    meeting_link = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+
+    process = relationship("InterviewProcess", back_populates="steps")
+    template_step = relationship("InterviewTemplateStep", back_populates="interview_steps")
+    interviewer = relationship("User", foreign_keys=[interviewer_id]) 

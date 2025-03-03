@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, HttpUrl, constr, SecretStr
 from pydantic.types import constr
 from typing import Optional, List
 from datetime import datetime
-from src.models.entities import JobStatus, ApplicationStatus, UserRole
+from src.models.entities import JobStatus, ApplicationStatus, UserRole, InterviewStepStatus, InterviewStepType
 
 # Company Schemas
 class CompanyBase(BaseModel):
@@ -132,4 +132,56 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str
-    role: UserRole 
+    role: UserRole
+
+class InterviewTemplateStepBase(BaseModel):
+    name: str
+    description: str
+    step_type: InterviewStepType
+    order: int
+    duration_minutes: int
+    required_participants: list[str]
+    evaluation_criteria: list[str]
+    passing_score: int
+
+class InterviewTemplateBase(BaseModel):
+    name: str
+    description: str
+    is_active: bool = True
+
+class InterviewTemplateCreate(InterviewTemplateBase):
+    steps: list[InterviewTemplateStepBase]
+
+class InterviewTemplate(InterviewTemplateBase):
+    id: int
+    steps: list[InterviewTemplateStepBase]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class InterviewStepUpdate(BaseModel):
+    scheduled_at: Optional[datetime] = None
+    status: Optional[InterviewStepStatus] = None
+    score: Optional[int] = None
+    feedback: Optional[str] = None
+    interviewer_id: Optional[int] = None
+    meeting_link: Optional[str] = None
+    location: Optional[str] = None
+
+class InterviewStep(BaseModel):
+    id: int
+    order: int
+    scheduled_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    status: InterviewStepStatus
+    score: Optional[int]
+    feedback: Optional[str]
+    interviewer_id: Optional[int]
+    meeting_link: Optional[str]
+    location: Optional[str]
+    template_step: InterviewTemplateStepBase
+
+    class Config:
+        from_attributes = True 
