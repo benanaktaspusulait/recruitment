@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, Enum
 from sqlalchemy.orm import relationship
 from src.database import Base
+from src.models.base_entity import BaseEntity
 from datetime import datetime, UTC
 import enum
 import bcrypt
@@ -24,24 +25,23 @@ class UserRole(str, enum.Enum):
     RECRUITER = "recruiter"
     ADMIN = "admin"
 
-class Company(Base):
+class Company(Base, BaseEntity):
     __tablename__ = "companies"
 
-    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     industry = Column(String)
     location = Column(String)
     website = Column(String)
     description = Column(Text)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     active = Column(Boolean, default=True)
 
     job_openings = relationship("JobOpening", back_populates="company")
+    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
+    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class JobOpening(Base):
+class JobOpening(Base, BaseEntity):
     __tablename__ = "job_openings"
 
-    id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"))
     description = Column(Text)
@@ -51,16 +51,15 @@ class JobOpening(Base):
     job_type = Column(String)  # full-time, part-time, contract
     experience_level = Column(String)
     status = Column(Enum(JobStatus), default=JobStatus.OPEN)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     company = relationship("Company", back_populates="job_openings")
     applications = relationship("Application", back_populates="job_opening")
+    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
+    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class Candidate(Base):
+class Candidate(Base, BaseEntity):
     __tablename__ = "candidates"
 
-    id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     first_name = Column(String, index=True)
     last_name = Column(String, index=True)
@@ -73,23 +72,21 @@ class Candidate(Base):
     current_company = Column(String)
     current_position = Column(String)
     education = Column(Text)  # JSON string containing education history
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     available_from = Column(DateTime, nullable=True)
     notes = Column(Text)
 
     user = relationship("User", back_populates="candidate")
     applications = relationship("Application", back_populates="candidate")
+    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
+    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
-class Application(Base):
+class Application(Base, BaseEntity):
     __tablename__ = "applications"
 
-    id = Column(Integer, primary_key=True, index=True)
     candidate_id = Column(Integer, ForeignKey("candidates.id"))
     job_opening_id = Column(Integer, ForeignKey("job_openings.id"))
     status = Column(Enum(ApplicationStatus), default=ApplicationStatus.APPLIED)
     applied_date = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     resume_version = Column(String)  # Version of resume used for this application
     cover_letter = Column(Text)
     notes = Column(Text)
@@ -98,6 +95,8 @@ class Application(Base):
 
     candidate = relationship("Candidate", back_populates="applications")
     job_opening = relationship("JobOpening", back_populates="applications")
+    created_by = relationship("User", foreign_keys=[BaseEntity.created_by_id])
+    updated_by = relationship("User", foreign_keys=[BaseEntity.updated_by_id])
 
 class User(Base):
     __tablename__ = "users"
